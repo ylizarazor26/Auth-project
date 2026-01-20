@@ -5,6 +5,24 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * DTO de solicitud para el registro de un nuevo usuario.
+ *
+ * <p>Contiene las credenciales necesarias para crear una cuenta
+ * y aplica validaciones para garantizar la consistencia de los datos.</p>
+ *
+ * Validaciones:
+ * <ul>
+ *   <li>{@code username}: Obligatorio, entre 3 y 50 caracteres.</li>
+ *   <li>{@code password}: Obligatoria, mínimo 6 caracteres.</li>
+ * </ul>
+ *
+ * Importancia:
+ * <ul>
+ *   <li>Evita registros con datos incompletos o inválidos.</li>
+ * </ul>
+ */
+
 @Getter
 @Setter
 public class RegisterRequest {

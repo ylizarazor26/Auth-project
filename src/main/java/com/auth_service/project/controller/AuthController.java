@@ -3,6 +3,7 @@ package com.auth_service.project.controller;
 import com.auth_service.project.dto.*;
 import com.auth_service.project.persistence.model.User;
 import com.auth_service.project.service.AuthService;
+import com.auth_service.project.service.UsuarioServicio;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
  *   <li>{@code GET /api/auth/me}: Devuelve información del usuario autenticado.</li>
  *   <li>{@code POST /api/auth/register}: Registra un nuevo usuario.</li>
  *   <li>{@code POST /api/auth/login}: Autentica un usuario existente.</li>
+ *   <li>{@code DELETE /api/auth/me}: Elimina la información de un usuario.</li>
  * </ul>
  *
  * Flujo típico:
@@ -40,9 +42,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final UsuarioServicio usuarioServicio;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UsuarioServicio usuarioServicio) {
         this.authService = authService;
+        this.usuarioServicio = usuarioServicio;
     }
 
     /**
@@ -97,7 +101,12 @@ public class AuthController {
             );
         }
     }
-
+    /**
+     * Autentica un usuario existente en el sistema.
+     *
+     * @param request credenciales de login validadas (username, password).
+     * @return {@link AuthResponse} con token y datos del usuario, o {@link ErrorResponse} si falla.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
@@ -109,5 +118,39 @@ public class AuthController {
             );
         }
     }
+
+    /**
+     * Elimina la cuenta del usuario autenticado.
+     *
+     * @param authentication datos del usuario autenticado
+     * @return mensaje de confirmación
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteMyAccount(Authentication authentication) {
+        try {
+            if (authentication == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ErrorResponse("No autenticado"));
+            }
+
+            String username = authentication.getName();
+            User user = authService.getUserByUsername(username);
+
+            usuarioServicio.eliminar(
+                    user.getSerial(),
+                    "Eliminación voluntaria del usuario"
+            );
+
+            return ResponseEntity.ok(
+                    new MessageResponse("Cuenta eliminada exitosamente")
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new ErrorResponse("Error al eliminar cuenta: " + e.getMessage())
+            );
+        }
+    }
+
 
 }
