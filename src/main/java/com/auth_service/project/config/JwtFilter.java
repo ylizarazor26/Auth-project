@@ -13,6 +13,35 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 
+/**
+ * Filtro de seguridad que intercepta cada petición HTTP para validar
+ * el token JWT presente en el encabezado {@code Authorization}.
+ *
+ * <p>Extiende {@link OncePerRequestFilter}, lo que garantiza que se ejecute
+ * una sola vez por cada solicitud.</p>
+ *
+ * <p>Importante</p>
+ * <ul>
+ *   <li>Verifica la existencia y validez de un token JWT en cada petición.</li>
+ *   <li>Extrae el {@code username} del token mediante {@link JwtService}.</li>
+ *   <li>Si el token es válido, registra la autenticación en el
+ *       {@link SecurityContextHolder} para que el usuario sea reconocido
+ *       como autenticado.</li>
+ *   <li>Implementa un esquema de seguridad sin estado</li>
+ * </ul>
+ *
+ * Flujo :
+ * <ol>
+ *   <li>Lee el encabezado {@code Authorization} de la petición.</li>
+ *   <li>Verifica que comience con {@code Bearer }.</li>
+ *   <li>Extrae el token y obtiene el {@code username}.</li>
+ *   <li>Valida el token con {@link JwtService}.</li>
+ *   <li>Si es correcto, crea un {@link UsernamePasswordAuthenticationToken}
+ *       y lo registra en el contexto de seguridad.</li>
+ *   <li>Si el token es inválido, se registra un mensaje en consola.</li>
+ * </ol>
+ */
+
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
@@ -30,20 +59,16 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        // 1. Si no hay header o no es Bearer, continuar sin autenticar
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            // 2. Extraer token
             String token = authHeader.substring(7);
 
-            // 3. Extraer username del token
             String username = jwtService.extraerUsername(token);
 
-            // 4. Validar token y autenticar
             if (username != null
                     && SecurityContextHolder.getContext().getAuthentication() == null
                     && jwtService.validateToken(token, username)) {
@@ -63,8 +88,6 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            // Token inválido, expirado o malformado → no autentica
-            // Se deja continuar para que Spring devuelva 401/403 según config
             System.out.println("JWT inválido: " + e.getMessage());
         }
 

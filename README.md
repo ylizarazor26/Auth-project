@@ -1,4 +1,4 @@
-## v1 — JWT Basic Auth
+## v1 — JWT Autenticación básica
 
 * Registro 
 * Login 
