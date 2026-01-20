@@ -1,6 +1,5 @@
 package com.auth_service.project.config;
 
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,23 +12,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-/**
- * Filtro de seguridad que intercepta cada petición HTTP para validar
- * el token JWT presente en el encabezado {@code Authorization}.
- *
- * <p>Importante:</p>
- * <ul>
- *   <li>Garantiza que solo usuarios autenticados accedan a recursos protegidos.</li>
- *   <li>Extrae el {@code username} del token y lo coloca en el contexto de seguridad.</li>
- * </ul>
- *
- * Flujo:
- * <ol>
- *   <li>Verifica si existe un encabezado {@code Bearer}.</li>
- *   <li>Extrae y valida el token JWT.</li>
- *   <li>Si es válido, registra la autenticación en {@link SecurityContextHolder}.</li>
- * </ol>
- */
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -48,29 +30,42 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
+        // 1. Si no hay header o no es Bearer, continuar sin autenticar
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7);
-        String username = jwtService.extraerUsername(token);
+        try {
+            // 2. Extraer token
+            String token = authHeader.substring(7);
 
-        if (username != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+            // 3. Extraer username del token
+            String username = jwtService.extraerUsername(token);
 
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                            username,
-                            null,
-                            Collections.emptyList()
-                    );
+            // 4. Validar token y autenticar
+            if (username != null
+                    && SecurityContextHolder.getContext().getAuthentication() == null
+                    && jwtService.validateToken(token, username)) {
 
-            authToken.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            );
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                Collections.emptyList()
+                        );
 
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+
+        } catch (Exception e) {
+            // Token inválido, expirado o malformado → no autentica
+            // Se deja continuar para que Spring devuelva 401/403 según config
+            System.out.println("JWT inválido: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
