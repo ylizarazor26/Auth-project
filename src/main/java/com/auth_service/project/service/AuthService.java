@@ -138,12 +138,10 @@ public class AuthService {
             throw new RuntimeException("Credenciales inválidas");
         }
 
-        // ✅ ROLES
         List<String> roles = user.getRoles().stream()
                 .map(Role::getName)
                 .toList();
 
-        // ✅ PERMISOS
         List<String> permissions = user.getRoles().stream()
                 .flatMap(role -> role.getPermissions().stream())
                 .map(Permission::getName)

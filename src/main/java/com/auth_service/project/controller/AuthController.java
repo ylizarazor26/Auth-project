@@ -153,5 +153,15 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/users")
+    public ResponseEntity<?> getAllUsers() {
+        return ResponseEntity.ok(usuarioServicio.obtenerTodos());
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
+        usuarioServicio.eliminar(id, "Eliminado por administrador");
+        return ResponseEntity.ok(new MessageResponse("Usuario eliminado"));
+    }
 
 }

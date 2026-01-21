@@ -50,18 +50,15 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/**")
+                        .requestMatchers(HttpMethod.GET, "/api/auth/users")
                         .hasAuthority("READ")
 
-                        .requestMatchers(HttpMethod.POST, "/api/**")
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register")
                         .hasAuthority("CREATE")
 
-                        .requestMatchers(HttpMethod.PUT, "/api/**")
-                        .hasAuthority("UPDATE")
-
-                        .requestMatchers(HttpMethod.DELETE, "/api/**")
+                        .requestMatchers(HttpMethod.DELETE, "/api/auth/users/**")
                         .hasAuthority("DELETE")
 
                         .anyRequest().authenticated()
