@@ -4,11 +4,16 @@ import com.auth_service.project.config.JwtService;
 import com.auth_service.project.dto.AuthResponse;
 import com.auth_service.project.dto.LoginRequest;
 import com.auth_service.project.dto.RegisterRequest;
+import com.auth_service.project.persistence.model.Permission;
+import com.auth_service.project.persistence.model.Role;
 import com.auth_service.project.persistence.model.User;
+import com.auth_service.project.persistence.repository.RoleRepository;
 import com.auth_service.project.persistence.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 
 /**
@@ -38,13 +43,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(UserRepository userRepository,
+                       RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -71,15 +79,31 @@ public class AuthService {
             throw new RuntimeException("El username ya está en uso");
         }
 
+        Role userRole = roleRepository.findByName("ROLE_USER")
+                .orElseThrow(() -> new RuntimeException("ROLE_USER no existe"));
+
         User newUser = new User();
         newUser.setUsername(request.getUsername());
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        newUser.getRoles().add(userRole);
 
         User savedUser = userRepository.save(newUser);
 
+        List<String> roles = savedUser.getRoles().stream()
+                .map(Role::getName)
+                .toList();
+
+        List<String> permissions = savedUser.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .distinct()
+                .toList();
+
         String token = jwtService.generarToken(
                 savedUser.getUsername(),
-                savedUser.getSerial()
+                savedUser.getSerial(),
+                roles,
+                permissions
         );
 
         return new AuthResponse(
@@ -89,6 +113,7 @@ public class AuthService {
                 "Usuario registrado exitosamente"
         );
     }
+
     /**
      * Autentica a un usuario existente en el sistema.
      *
@@ -113,9 +138,23 @@ public class AuthService {
             throw new RuntimeException("Credenciales inválidas");
         }
 
+        // ✅ ROLES
+        List<String> roles = user.getRoles().stream()
+                .map(Role::getName)
+                .toList();
+
+        // ✅ PERMISOS
+        List<String> permissions = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .distinct()
+                .toList();
+
         String token = jwtService.generarToken(
                 user.getUsername(),
-                user.getSerial()
+                user.getSerial(),
+                roles,
+                permissions
         );
 
         return new AuthResponse(
@@ -125,6 +164,7 @@ public class AuthService {
                 "Login exitoso"
         );
     }
+
 
     /**
      * Recupera un usuario por su nombre de usuario.

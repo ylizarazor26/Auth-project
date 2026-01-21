@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Entidad JPA representa a un usuario dentro del sistema de autenticación.
  *
@@ -16,7 +19,12 @@ import lombok.Setter;
  *   <li>{@code serial}: Identificador único autogenerado.</li>
  *   <li>{@code username}: Nombre de usuario.</li>
  *   <li>{@code password}: Contraseña.</li>
+ *   <li>{@code roles}: Conjunto de roles asociados al usuario.</li>
  * </ul>
+ *
+ *La relación es {@code @ManyToMany} con carga inmediata ({@code EAGER})
+ *Se utiliza la tabla intermedia {@code user_roles} para vincular usuarios y roles.
+ *Permite que un usuario tenga múltiples roles y que un rol sea compartido por varios usuarios.
  */
 
 @NoArgsConstructor
@@ -35,5 +43,14 @@ public class User {
     public String username;
     @Column(name = "password")
     public String password;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+
+    private Set<Role> roles = new HashSet<>();
 
 }

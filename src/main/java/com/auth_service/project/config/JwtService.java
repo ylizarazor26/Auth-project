@@ -5,6 +5,8 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Date;
+import java.util.List;
+
 
 
 /**
@@ -43,10 +45,12 @@ public class JwtService {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    public String generarToken(String username, Integer userId) {
+    public String generarToken(String username, Integer userId, List<String> roles, List<String> permissions) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("uid", userId)
+                .claim("roles", roles)
+                .claim("permissions", permissions)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
